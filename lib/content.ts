@@ -11,13 +11,17 @@ import type { DayContent, EnergyState, Exercise } from "@/types/day";
 const CONTENT_DIR = path.join(process.cwd(), "content", "days");
 
 function extractSection(body: string, title: string): string {
-  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(
-    `^##\\s+${escaped}\\s*\\n([\\s\\S]*?)(?=^##\\s+|$)`,
-    "m",
-  );
-  const m = body.match(re);
-  return m ? m[1].trim() : "";
+  /** Split on headings so blank lines inside a section cannot end the match (see `$` + `m` bug). */
+  const parts = body.split(/^##\s+/m);
+  for (const part of parts) {
+    const p = part.trimStart();
+    const lineEnd = p.indexOf("\n");
+    const heading = lineEnd === -1 ? p.trim() : p.slice(0, lineEnd).trim();
+    if (heading === title) {
+      return lineEnd === -1 ? "" : p.slice(lineEnd + 1).trim();
+    }
+  }
+  return "";
 }
 
 function parseListItems(markdown: string): string[] {
